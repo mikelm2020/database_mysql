@@ -27,7 +27,7 @@ INSERT INTO origin_countries (id, origin_country,iso_code) VALUES (1,'Alemania',
 (27,'Portugal','PRT'),
 (28,'Suecia','SWE');
 
-INSERT INTO classifications (id, classification) VALUES (1,'TV-MA'),
+INSERT INTO age_ratings (id, age_rating) VALUES (1,'TV-MA'),
 (2,'R'),
 (3,'NC-17'),
 (4,'TV-Y'),
@@ -57,7 +57,7 @@ INSERT INTO streaming_services (id, streaming_service) VALUES (1,'Netfix'),
 (4,'HBO Max'),
 (5,'Paramount Plus');
 
-INSERT INTO movies (id,movie_name,duration,movie_year,streaming_service_id,movie_genre_id,classification_id,origin_country_id) VALUES (1,'Confianza','1:34',2021,1,5,1,7),
+INSERT INTO movies (id,movie_name,duration,movie_year,streaming_service_id,movie_genre_id,age_rating_id,origin_country_id) VALUES (1,'Confianza','1:34',2021,1,5,1,7),
 (2,'Purasangre','1:43',2016,1,1,1,11),
 (3,'No me mates','1:30',2022,1,8,1,10),
 (4,'Talk to her','1:53',2002,1,3,2,6),
@@ -148,7 +148,7 @@ INSERT INTO movies (id,movie_name,duration,movie_year,streaming_service_id,movie
 (89,'La vida que queríamos','1:33',2020,1,3,1,20),
 (90,'Romina','1:14',2018,1,8,1,11);
 
-INSERT INTO series (id,serie_name,seasons,chapters,streaming_service_id,movie_genre_id,classification_id,origin_country_id) VALUES (1,'Tabú',1,8,1,3,1,25),
+INSERT INTO series (id,serie_name,seasons,chapters,streaming_service_id,movie_genre_id,age_rating_id,origin_country_id) VALUES (1,'Tabú',1,8,1,3,1,25),
 (2,'Cómo peces dorados',1,8,1,3,1,26),
 (3,'Ritmo salvaje',1,8,1,3,1,23),
 (4,'Inventando a Ana',1,9,1,3,1,7),
