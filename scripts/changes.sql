@@ -1,0 +1,44 @@
+USE streaming;
+
+ALTER TABLE movie_genres RENAME film_genders;
+
+ALTER TABLE film_genders CHANGE COLUMN movie_genre movie_gender VARCHAR(50) NOT NULL;
+
+ALTER TABLE movies MODIFY COLUMN duration INTEGER;
+
+ALTER TABLE user_movies CHANGE COLUMN movie_view movie_viewed TINYINT(1) NOT NULL DEFAULT 0;
+
+ALTER TABLE user_series CHANGE COLUMN serie_view serie_viewed TINYINT(1) NOT NULL DEFAULT 0;
+
+ALTER TABLE users ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1;
+
+ALTER TABLE movies ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1;
+
+ALTER TABLE series ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1;
+
+ALTER TABLE user_movies ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1;
+
+ALTER TABLE user_series ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1;
+
+ALTER TABLE film_genders COMMENT = 'The gender of the movies';
+
+ALTER TABLE movies DROP COLUMN movie_genre_id;
+
+ALTER TABLE series DROP COLUMN movie_genre_id;
+
+CREATE TABLE movie_genders (
+    id INTEGER UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    movie_id INTEGER  NOT NULL,
+    film_gender_id INTEGER  NOT NULL,
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (film_gender_id) REFERENCES film_genders(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE TABLE serie_genders (
+    id INTEGER UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    serie_id INTEGER  NOT NULL,
+    film_gender_id INTEGER  NOT NULL,
+    FOREIGN KEY (serie_id) REFERENCES series(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (film_gender_id) REFERENCES film_genders(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
