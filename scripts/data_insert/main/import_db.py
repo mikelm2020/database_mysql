@@ -16,7 +16,12 @@ MOVIES_SCHEMA = ['movie_name', 'duration', 'movie_year',
                 'active'
                 ]
 
+STREAMING_SERVICES_SCHEMA = ['streaming_service']
 
+
+def relative_path(file_name):
+    current_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(current_path, '..','data',file_name)
 
 
 def dataframe_connect(data_frame):
@@ -39,7 +44,7 @@ def find_fk(fk):
 
 def find_iso(dict_obj, country_name):
     if country_name in dict_obj:
-        # Return tne value of the key country_name
+        # Return tne value of the key country_name.
         return dict_obj[country_name]
     else:
         return '000'
@@ -55,12 +60,13 @@ def execute_statment(sql_command, conect_obj, table_name):
         with conect_obj.cursor() as cursor:
             counter_command = "Select count(*) from " + table_name
             cursor.execute(counter_command)
-            # Return the count of registers
+            # Return the count of registers.
             registers_count = cursor.fetchone()[0]
-            print(registers_count)
-            # If the count is zero then excute the command
+
+            # If the count is zero then excute the command.
             if registers_count == 0:
                 cursor.execute(sql_command)
+                message_success()
             else:
                 print('The table {}'.format(table_name) + 
                 ' you already have records')
@@ -78,27 +84,34 @@ def catalog_insert(table_name):
                                      os.environ.get('DB_NAME'))
         movies_list = []
         countries_list = []
-        # Conect to the dataframe of Movies with pandas
-        data_frame_movies = dataframe_connect('../data/movies.csv')
-        # Rename the column's name Prime Video and Disney+
-        data_frame_movies = data_frame_movies.rename(columns={'Prime Video':'Prime', 'Disney+':'Disney'})
-        # Delete records with nan values
+        # Conect to the dataframe of Movies with pandas.
+        movies_path = relative_path('movies.csv')
+        data_frame_movies = dataframe_connect(movies_path)
+
+        # Rename the column's name Prime Video and Disney+.
+        data_frame_movies = data_frame_movies.rename(
+            columns={'Prime Video':'Prime', 'Disney+':'Disney'})
+
+        # Delete records with nan values.
         data_frame_movies = data_frame_movies.dropna()
-        # Filter the dataframe with movies of Netfix, Prime and Disney+
-        df_movies_filter = data_frame_movies.query("Netflix == 1 | Prime == 1 | Disney == 1 ")
-        # Create a new dataframe with especifics columns
+
+        # Filter the dataframe with movies of Netfix, Prime and Disney+.
+        df_movies_filter = data_frame_movies.query(
+            "Netflix == 1 | Prime == 1 | Disney == 1 ")
+            
+        # Create a new dataframe with especifics columns.
         cols = ['ID', 'Title', 'Year', 'Age', 'Netflix', 'Prime', 'Disney', 
                 'Genres', 'Country', 'Runtime']
         movies_set = df_movies_filter[cols]
 
-        # Conect to the dataframe of Netflix with pandas
-        data_frame_netflix = dataframe_connect('../data/netflix.csv')
+        # Conect to the dataframe of Netflix with pandas.
+        netflix_path = relative_path('netflix.csv')
+        data_frame_netflix = dataframe_connect(netflix_path)
 
         if table_name == 'age_ratings':
             age_ratings_list = (movies_set['Age'].unique()).tolist()
 
-            sql_string = insert_statment('age_ratings', age_ratings_list, 
-                                     dict_iso_codes)
+            sql_string = insert_statment('age_ratings', age_ratings_list)
             execute_statment(sql_string, conection, 'age_ratings')
             
 
@@ -106,8 +119,7 @@ def catalog_insert(table_name):
             genders_list = (movies_set['Genres'].dropna().str.split(',').
                             explode().unique()).tolist()
 
-            sql_string = insert_statment('film_genders', genders_list, 
-                                     dict_iso_codes)
+            sql_string = insert_statment('film_genders', genders_list)
             execute_statment(sql_string, conection, 'film_genders')
             
 
@@ -117,14 +129,20 @@ def catalog_insert(table_name):
 
             sql_string = insert_statment('origin_countries', countries_list, 
                                      dict_iso_codes)
-            # execute_statment(sql_string, conection, 'origin_countries')
-            print(sql_string)
+            execute_statment(sql_string, conection, 'origin_countries')
+
+        if table_name == 'streaming_services':
+            streaming_list = ['Netfix', 'Disney Plus', 'Amazon Prime', 
+                             'HBO Max', 'Paramount Plus']
+            sql_string = insert_statment('streaming_services', 
+                                         streaming_list)
+            execute_statment(sql_string, conection, 'streaming_services')
             
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
 
 
-def insert_statment(table_name, list_obj, dict_obj):
+def insert_statment(table_name, list_obj, dict_obj={}):
 
     sql_insert = "INSERT INTO " + table_name + "("
     field_count = 0 # Initialize the fields'count
@@ -143,59 +161,66 @@ def insert_statment(table_name, list_obj, dict_obj):
     if table_name == 'movies':
         fields_list = MOVIES_SCHEMA
 
-    # Generate the string for command INSERT in the table
+    if table_name == 'streaming_services':
+        fields_list = STREAMING_SERVICES_SCHEMA
+
+    # Generate the string for command INSERT in the table.
     for field in fields_list:
         sql_insert = sql_insert + field
         field_count = fields_list.index(field)
-        if field_count < len(fields_list):
+        if field_count < len(fields_list) - 1:
             sql_insert = sql_insert + ', '
         else:
             sql_insert = sql_insert + ')'
 
     
-        index_element = 0        
-        # Genera the statment INSERT for the table
-        sql_insert = sql_insert + sql_values
-        for element in list_obj:
-            index_element = list_obj.index(element)
-            if table_name == 'origin_countries':
-                iso_code = find_iso(dict_obj, element)
-                if index_element == 0:
-                    sql_insert = sql_insert + "'" + element + "'" + ', ' + \
-                                "'" + iso_code + \
-                                "')"
-                else:
-                    sql_insert = sql_insert + ", ('" + element + "'" + ', ' + \
-                                "'" + iso_code + \
-                                    "')"
+    index_element = 0        
+    # Generate the statment INSERT for the table.
+    sql_insert = sql_insert + sql_values
+    for element in list_obj:
+        index_element = list_obj.index(element)
+        if table_name == 'origin_countries':
+            iso_code = find_iso(dict_obj, element)
+            if index_element == 0:
+                sql_insert = sql_insert + "'" + element + "'" + ', ' + \
+                            "'" + iso_code + \
+                            "')"
             else:
-                if index_element == 0:
-                    sql_insert = sql_insert + "'" + element + "')"
-                else:
-                    sql_insert = sql_insert + ", ('" + element + "')"
+                sql_insert = sql_insert + ", ('" + element + "'" + ', ' + \
+                            "'" + iso_code + \
+                                "')"
+        else:
+            if index_element == 0:
+                sql_insert = sql_insert + "'" + element + "')"
+            else:
+                sql_insert = sql_insert + ", ('" + element + "')"
 
     sql_insert = sql_insert + ';'
     return sql_insert
 
-# Conect to the dataframe of iso contries code with pandas
-data_frame_iso_codes = dataframe_connect('../data/paises.csv')
-# Create a new dataframe with especifics columns
+# Conect to the dataframe of iso contries code with pandas.
+country_path = relative_path('paises.csv')
+data_frame_iso_codes = dataframe_connect(country_path)
+
+# Create a new dataframe with especifics columns.
 cols = [' name', ' iso3']
 countries_set = data_frame_iso_codes[cols]
-# Rename the columns without space
+
+# Rename the columns without space.
 countries_set = countries_set.rename(columns={' name':'name', ' iso3':'iso3'})
-# Convert the columns in  lists
+
+# Convert the columns in  lists.
 list_countries = countries_set['name'].tolist()
 list_iso_code = countries_set['iso3'].tolist()
-# Convert the list in a dictionary
+
+# Convert the list in a dictionary.
 dict_iso_codes = dict(zip(list_countries, list_iso_code))
 
 
 def run():
-        
-    # Create the menu for manage the database
+    # Create the menu for manage the database.
     option = 0
-    
+
     menu = """
     Welcome to the administration program
     of playlist streaming database
@@ -204,10 +229,11 @@ def run():
     1 - Create Catalog Age_ratings
     2 - Create Catalog Film_genders
     3 - Create Catalog Origin_countries
-    4 - Exit program
+    4 - Create Catalog Streaming_services
+    5 - Exit program
 
     Chose an option: """
-    while option !=4:
+    while option !=5:
         option = int(input(menu))
 
         if option == 1:
@@ -217,14 +243,16 @@ def run():
         elif option == 3:
             catalog_insert('origin_countries')
         elif option == 4:
+            catalog_insert('streaming_services')
+        elif option == 5:
             break
         else :
             print ("Please enter a correct option")
-        message_success()
-        time.sleep(60)
+        time.sleep(2)
         os.system('clear')
 
 
 if __name__ == '__main__':
     run()
+
     
