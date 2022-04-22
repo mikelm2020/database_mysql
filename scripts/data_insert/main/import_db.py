@@ -1,8 +1,12 @@
 import os
 import time
 
+
 import pymysql
 import pandas as pd
+from faker import Faker
+
+
 
 AGE_RATINGS_SCHEMA = ['age_rating']
 
@@ -11,12 +15,88 @@ FILM_GENDERS_SCHEMA = ['movie_gender']
 ORIGIN_COUNTRIES_SCHEMA = ['origin_country', 'iso_code']
 
 MOVIES_SCHEMA = ['movie_name', 'duration', 'movie_year', 
-                'streaming_service_id', 'movie_gender_id', 
-                'age_rating_id', 'origin_country_id',
-                'active'
+                'streaming_service_id', 'age_rating_id', 
+                'origin_country_id','active'
                 ]
 
 STREAMING_SERVICES_SCHEMA = ['streaming_service']
+
+USERS_SCHEMA = ['login', 'pass', 'user_name']
+
+
+def user_profile():
+    fake = Faker()
+    Faker.seed(0)
+    user_list = []
+
+    for _ in range(100):
+        user_list.extend([fake.user_name()[0:9], fake.password(length=10), fake.name()])
+        
+    return user_list
+    
+
+def insert_fields_statement(table_name, list_obj):
+    sql_string = "INSERT INTO " + table_name
+    sql_values = " VALUES"
+    fields_list = []
+
+    sql_string = sql_string + '('
+
+    if table_name == 'users':
+        fields_list = USERS_SCHEMA
+
+    for field in fields_list:
+        sql_string = sql_string + field
+        index_field = fields_list.index(field)
+
+        if index_field == len(fields_list) - 1:
+            character = ')'
+        else:
+            character = ','
+
+        sql_string = sql_string + character
+
+    # Add values
+    index_field = 0
+    sql_string = sql_string + sql_values
+    for element in list_obj:
+        index_element = list_obj.index(element)
+        if index_field == 0:
+            if index_element == 0:
+                sql_string = sql_string + '('
+            else:
+                sql_string = sql_string + ',('
+            sql_string = sql_string + "'" + element + "'"
+            index_field += 1
+        elif index_field == len(fields_list) - 1:
+            sql_string = sql_string + ", '" + element + "'"
+            sql_string = sql_string + ')'
+            index_field = 0
+        else:
+            sql_string = sql_string + ', '
+            sql_string = sql_string + "'" + element + "'"
+            index_field += 1
+        
+
+    return sql_string
+    
+
+def catalog_users():
+    try:
+        conection = database_connect(os.environ.get('DB_HOST'), 
+                                     os.environ.get('DB_USER'),
+                                     os.environ.get('DB_PASS'), 
+                                     os.environ.get('DB_NAME'))
+        profile_list = []
+        sql_command = ''
+    
+        profile_list = user_profile()
+        sql_command = insert_fields_statement('users', profile_list)
+        execute_statment(sql_command, conection,'users')
+
+    except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
+        print("An error occurred while connecting: ", e)
+
 
 
 def relative_path(file_name):
@@ -230,10 +310,11 @@ def run():
     2 - Create Catalog Film_genders
     3 - Create Catalog Origin_countries
     4 - Create Catalog Streaming_services
-    5 - Exit program
+    5 - Create Catalog Users
+    6 - Exit program
 
     Chose an option: """
-    while option !=5:
+    while option !=6:
         option = int(input(menu))
 
         if option == 1:
@@ -245,10 +326,12 @@ def run():
         elif option == 4:
             catalog_insert('streaming_services')
         elif option == 5:
+            catalog_users()
+        elif option == 6:
             break
         else :
             print ("Please enter a correct option")
-        time.sleep(2)
+        time.sleep(3)
         os.system('clear')
 
 
