@@ -17,7 +17,7 @@ ORIGIN_COUNTRIES_SCHEMA = ['origin_country', 'iso_code']
 
 MOVIES_SCHEMA = ['movie_name', 'duration', 'movie_year', 
                 'streaming_service_id', 'age_rating_id', 
-                'origin_country_id','active'
+                'active'
                 ]
 
 STREAMING_SERVICES_SCHEMA = ['streaming_service']
@@ -30,7 +30,9 @@ def generate_movies():
         movies_set = create_movies_set()
     # Objetivo: Crear una lista de listas con los campos de la tabla movies a partir de los datos
     # del dataframe movies.csv
-
+        cols = ['Title', 'Runtime', 'Year', 'Age']
+        movie_name_list = movies_set.query('Netflix == 1')[cols].values.tolist()
+        print(movie_name_list)
 
 
 # def execute_query(sql_command, conect_obj):
@@ -69,6 +71,7 @@ def create_movies_set():
     cols = ['ID', 'Title', 'Year', 'Age', 'Netflix', 'Prime', 'Disney', 
             'Genres', 'Country', 'Runtime']
     movies_set = df_movies_filter[cols]
+    movies_set['Country'].dropna().str.split(',').explode().unique()
 
     return movies_set
 
@@ -85,7 +88,7 @@ def catalog_movies():
         sql_command = ''
 
         movies_list = generate_movies()
-        sql_command = insert_fields_statement('movies', movies_list)
+        # sql_command = insert_fields_statement('movies', movies_list)
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
@@ -390,7 +393,7 @@ def run():
             break
         else :
             print ("Please enter a correct option")
-        time.sleep(30)
+        time.sleep(60)
         os.system('clear')
 
 

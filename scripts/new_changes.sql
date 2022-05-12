@@ -1,0 +1,25 @@
+USE streaming;
+
+ALTER TABLE movies DROP CONSTRAINT movies_ibfk_4;
+
+ALTER TABLE movies DROP COLUMN origin_country_id;
+
+CREATE TABLE movie_countries (
+    id INTEGER UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    movie_id INTEGER  NOT NULL,
+    country_id INTEGER  NOT NULL,
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (country_id) REFERENCES origin_countries(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+ALTER TABLE series DROP CONSTRAINT series_ibfk_4;
+
+ALTER TABLE series DROP COLUMN origin_country_id;
+
+CREATE TABLE serie_countries (
+    id INTEGER UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    serie_id INTEGER  NOT NULL,
+    country_id INTEGER  NOT NULL,
+    FOREIGN KEY (serie_id) REFERENCES series(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (country_id) REFERENCES origin_countries(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
