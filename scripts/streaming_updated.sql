@@ -26,7 +26,7 @@ CREATE TABLE `age_ratings` (
   `id` int NOT NULL AUTO_INCREMENT,
   `age_rating` varchar(5) COLLATE utf8_spanish2_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='Age ratings for movies and series ';
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='Age ratings for movies and series ';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -40,7 +40,26 @@ CREATE TABLE `film_genders` (
   `id` int NOT NULL AUTO_INCREMENT,
   `movie_gender` varchar(50) COLLATE utf8_spanish2_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The gender of the movies';
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The gender of the movies';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `movie_countries`
+--
+
+DROP TABLE IF EXISTS `movie_countries`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `movie_countries` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `movie_id` int NOT NULL,
+  `country_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `movie_id` (`movie_id`),
+  KEY `country_id` (`country_id`),
+  CONSTRAINT `movie_countries_ibfk_1` FOREIGN KEY (`movie_id`) REFERENCES `movies` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `movie_countries_ibfk_2` FOREIGN KEY (`country_id`) REFERENCES `origin_countries` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -74,17 +93,30 @@ CREATE TABLE `movies` (
   `movie_name` varchar(150) COLLATE utf8_spanish2_ci NOT NULL,
   `duration` int DEFAULT NULL,
   `movie_year` int NOT NULL,
-  `streaming_service_id` int NOT NULL,
   `age_rating_id` int NOT NULL,
-  `origin_country_id` int NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
-  KEY `streaming_service_id` (`streaming_service_id`),
   KEY `age_rating_id` (`age_rating_id`),
-  KEY `origin_country_id` (`origin_country_id`),
-  CONSTRAINT `movies_ibfk_1` FOREIGN KEY (`streaming_service_id`) REFERENCES `streaming_services` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `movies_ibfk_3` FOREIGN KEY (`age_rating_id`) REFERENCES `age_ratings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `movies_ibfk_4` FOREIGN KEY (`origin_country_id`) REFERENCES `origin_countries` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `movies_ibfk_3` FOREIGN KEY (`age_rating_id`) REFERENCES `age_ratings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `movies_streamings`
+--
+
+DROP TABLE IF EXISTS `movies_streamings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `movies_streamings` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `movie_id` int NOT NULL,
+  `streaming_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `movie_id` (`movie_id`),
+  KEY `streaming_id` (`streaming_id`),
+  CONSTRAINT `movies_streamings_ibfk_1` FOREIGN KEY (`movie_id`) REFERENCES `movies` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `movies_streamings_ibfk_2` FOREIGN KEY (`streaming_id`) REFERENCES `streaming_services` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -100,7 +132,7 @@ CREATE TABLE `origin_countries` (
   `origin_country` varchar(50) COLLATE utf8_spanish2_ci NOT NULL,
   `iso_code` char(3) COLLATE utf8_spanish2_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The countries of origin of movies or series with ISO 3166-1 code';
+) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The countries of origin of movies or series with ISO 3166-1 code';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -116,6 +148,25 @@ CREATE TABLE `seasons` (
   `chapters` smallint NOT NULL DEFAULT '8',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The seasons of the series by number of chapters';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `serie_countries`
+--
+
+DROP TABLE IF EXISTS `serie_countries`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `serie_countries` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `serie_id` int NOT NULL,
+  `country_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `serie_id` (`serie_id`),
+  KEY `country_id` (`country_id`),
+  CONSTRAINT `serie_countries_ibfk_1` FOREIGN KEY (`serie_id`) REFERENCES `series` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `serie_countries_ibfk_2` FOREIGN KEY (`country_id`) REFERENCES `origin_countries` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -149,17 +200,11 @@ CREATE TABLE `series` (
   `serie_name` varchar(150) COLLATE utf8_spanish2_ci NOT NULL,
   `seasons` smallint NOT NULL DEFAULT '1',
   `chapters` smallint NOT NULL,
-  `streaming_service_id` int NOT NULL,
   `age_rating_id` int NOT NULL,
-  `origin_country_id` int NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
-  KEY `streaming_service_id` (`streaming_service_id`),
   KEY `age_rating_id` (`age_rating_id`),
-  KEY `origin_country_id` (`origin_country_id`),
-  CONSTRAINT `series_ibfk_1` FOREIGN KEY (`streaming_service_id`) REFERENCES `streaming_services` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `series_ibfk_3` FOREIGN KEY (`age_rating_id`) REFERENCES `age_ratings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `series_ibfk_4` FOREIGN KEY (`origin_country_id`) REFERENCES `origin_countries` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `series_ibfk_3` FOREIGN KEY (`age_rating_id`) REFERENCES `age_ratings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -183,6 +228,25 @@ CREATE TABLE `series_seasons` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `series_streamings`
+--
+
+DROP TABLE IF EXISTS `series_streamings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `series_streamings` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `serie_id` int NOT NULL,
+  `streaming_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `serie_id` (`serie_id`),
+  KEY `streaming_id` (`streaming_id`),
+  CONSTRAINT `series_streamings_ibfk_1` FOREIGN KEY (`serie_id`) REFERENCES `series` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `series_streamings_ibfk_2` FOREIGN KEY (`streaming_id`) REFERENCES `streaming_services` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `streaming_services`
 --
 
@@ -193,7 +257,7 @@ CREATE TABLE `streaming_services` (
   `id` int NOT NULL AUTO_INCREMENT,
   `streaming_service` varchar(15) COLLATE utf8_spanish2_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The service of streamings';
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The service of streamings';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -253,7 +317,7 @@ CREATE TABLE `users` (
   `user_name` varchar(30) COLLATE utf8_spanish2_ci NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=201 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -265,4 +329,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-04-15  1:19:05
+-- Dump completed on 2022-05-12  3:40:17

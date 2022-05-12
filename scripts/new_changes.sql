@@ -23,3 +23,27 @@ CREATE TABLE serie_countries (
     FOREIGN KEY (serie_id) REFERENCES series(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (country_id) REFERENCES origin_countries(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
+
+ALTER TABLE movies DROP CONSTRAINT movies_ibfk_1;
+
+ALTER TABLE movies DROP COLUMN streaming_service_id;
+
+CREATE TABLE movies_streamings (
+    id INTEGER UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    movie_id INTEGER  NOT NULL,
+    streaming_id INTEGER  NOT NULL,
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (streaming_id) REFERENCES streaming_services(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+ALTER TABLE series DROP CONSTRAINT series_ibfk_1;
+
+ALTER TABLE series DROP COLUMN streaming_service_id;
+
+CREATE TABLE series_streamings (
+    id INTEGER UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    serie_id INTEGER  NOT NULL,
+    streaming_id INTEGER  NOT NULL,
+    FOREIGN KEY (serie_id) REFERENCES series(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (streaming_id) REFERENCES streaming_services(id) ON UPDATE CASCADE ON DELETE RESTRICT
+);
