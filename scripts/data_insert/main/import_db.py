@@ -16,8 +16,7 @@ FILM_GENDERS_SCHEMA = ['movie_gender']
 ORIGIN_COUNTRIES_SCHEMA = ['origin_country', 'iso_code']
 
 MOVIES_SCHEMA = ['movie_name', 'duration', 'movie_year',
-                 'age_rating_id','active'
-                 ]
+                 'age_rating_id']
 
 STREAMING_SERVICES_SCHEMA = ['streaming_service']
 
@@ -48,32 +47,47 @@ def find_key(id_field, table_name, field, data_find):
     return fk_data
 
 
-def obtain_data(obj_list):
-    sql_command = ''
+def insert_movies_to_list(obj_list):
     fk_value = 0
+    list_movies = []
+
     for list_element in obj_list:
         for element in list_element:
-            if list_element.index(element) == len(list_element):
+            if list_element.index(element) == len(list_element) - 1:
                 fk_value = find_key('id', 'age_ratings', 'age_rating', element)
-                sql_command += str(fk_value)
-                if obj_list.index(list_element) != len(obj_list) - 1:
-                    sql_command += ','
+                list_movies.append(str(fk_value))
             else:
-                sql_command += str(element) if type(element) != 'str' else element
+                list_movies.append(element if type(element) == str else str(element)) 
 
-            
+    return list_movies
 
-    print(sql_command)
+
+def insert_series(obj_list):
+    pass
+
+
+def obtain_data(obj_list, table_name):
+    list_table = []
+    sql_command = ''
+    if table_name == 'movies':
+        list_table = insert_movies_to_list(obj_list)
+    if table_name == 'series':
+        insert_series(obj_list)
+    return list_table
+
 
 def generate_movies():
     # Create the movies_set with movies of the dataset movies.csv
     movies_set = create_movies_set()
 
-    # Filter the movies_set by Netflix
+    # Filter the movies_set by Netflix or Amazon Prime or Disney+
     cols = ['Title', 'Runtime', 'Year', 'Age']
-    movie_name_list = movies_set.query('Netflix == 1')[cols].values.tolist()
-    # Create the string for insert data for the table movies by Netflix
-    string_command = obtain_data(movie_name_list)
+    query = 'Netflix == 1 | Prime == 1 | Disney == 1'
+    movie_name_list = movies_set.query(query)[cols].values.tolist()
+    # Create the string for insert data for the table movies
+    movies_list = obtain_data(movie_name_list, 'movies')
+    return movies_list
+
 
 
 # def execute_query(sql_command, conect_obj):
@@ -130,7 +144,9 @@ def catalog_movies():
         sql_command = ''
 
         movies_list = generate_movies()
-        # sql_command = insert_fields_statement('movies', movies_list)
+        sql_command = insert_fields_statement('movies', movies_list)
+        execute_statment(sql_command, conection, 'movies')
+
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
