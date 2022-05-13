@@ -24,6 +24,20 @@ USERS_SCHEMA = ['login', 'pass', 'user_name']
 
 
 def find_key(id_field, table_name, field, data_find):
+    """Find the value of the foreign key of the tables
+
+    Generating a command:
+    SELECT id_field FROM table_name WHERE field = data_find
+
+    Args:
+        id_field (str): Field of foreign key
+        table_name (str): name of the table with the foreign key
+        field (str): Field of the value to find
+        data_find (str): value to find
+
+    Returns:
+        int: The primary key of the table how parameter
+    """
     sql_command = ''
     fk_data = 0
     conect_obj = database_connect(os.environ.get('DB_HOST'),
@@ -35,7 +49,7 @@ def find_key(id_field, table_name, field, data_find):
         with conect_obj.cursor(pymysql.cursors.DictCursor) as cursor:
             sql_command = "Select "
             sql_command += id_field + " from " + table_name + " Where " + \
-            field + "='%s'"
+                field + "='%s'"
             cursor.execute(sql_command % data_find)
             # Return the id from the table
             for row in cursor:
@@ -47,7 +61,23 @@ def find_key(id_field, table_name, field, data_find):
     return fk_data
 
 
+def catalog_series():
+    pass
+
+
+def catalog_seasons():
+    pass
+
+
 def insert_movies_to_list(obj_list):
+    """Generate a list completed with values of the list of lists of table movies
+
+    Args:
+        obj_list (list): list obtained from data set movies.csv how a list of lists
+
+    Returns:
+        list: list converted with values of foreign keys
+    """
     fk_value = 0
     list_movies = []
 
@@ -57,7 +87,8 @@ def insert_movies_to_list(obj_list):
                 fk_value = find_key('id', 'age_ratings', 'age_rating', element)
                 list_movies.append(str(fk_value))
             else:
-                list_movies.append(element if type(element) == str else str(element)) 
+                list_movies.append(element if type(element)
+                                   == str else str(element))
 
     return list_movies
 
@@ -67,6 +98,15 @@ def insert_series(obj_list):
 
 
 def obtain_data(obj_list, table_name):
+    """Function for obtain data from movies set movies.csv for each table needed
+
+    Args:
+        obj_list (list): List obtained from movies set movies.csv in pure form
+        table_name (str): Table by fill with data from movies set movies.csv
+
+    Returns:
+        list: List with the information required for fill the table
+    """
     list_table = []
     sql_command = ''
     if table_name == 'movies':
@@ -77,6 +117,11 @@ def obtain_data(obj_list, table_name):
 
 
 def generate_movies():
+    """Generate the list with information of the movies from data set movies.csv
+
+    Returns:
+        list: List with information of movies in pure form
+    """
     # Create the movies_set with movies of the dataset movies.csv
     movies_set = create_movies_set()
 
@@ -89,24 +134,12 @@ def generate_movies():
     return movies_list
 
 
-
-# def execute_query(sql_command, conect_obj):
-
-#     try:
-#         with conect_obj.cursor() as cursor:
-#                 cursor.execute(sql_command)
-
-#                 columns = [column[0] for column in cursor.description]
-#                 results = []
-#                 for row in cursor.fetchall():
-#                     results.append(dict(zip(columns, row)))
-
-#         conect_obj.commit()
-#     finally:
-#         conect_obj.close()
-#     return results
-
 def create_movies_set():
+    """Obtain the movies set with information of the file movies.csv
+
+    Returns:
+        DataFrame: Dataframe of Pandas with the information of movies from movies.csv
+    """
     # Conect to the dataframe of Movies with pandas.
     movies_path = relative_path('movies.csv')
     data_frame_movies = dataframe_connect(movies_path)
@@ -132,6 +165,8 @@ def create_movies_set():
 
 
 def catalog_movies():
+    """Create of the catalog of movies for database streaming
+    """
     # Generate the conection to mySQL database.
     try:
         conection = database_connect(os.environ.get('DB_HOST'),
@@ -147,16 +182,16 @@ def catalog_movies():
         sql_command = insert_fields_statement('movies', movies_list)
         execute_statment(sql_command, conection, 'movies')
 
-
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
 
 
-def dataframe_from_table(table_name, conect_obj):
-    return pd.read_sql_table(table_name, con=conect_obj)
-
-
 def user_profile():
+    """Function for generate random data with the package Faker for 100 users
+
+    Returns:
+        list: List with random data for the user profile
+    """
     fake = Faker()
     Faker.seed(0)
     user_list = []
@@ -169,6 +204,16 @@ def user_profile():
 
 
 def insert_fields_statement(table_name, list_obj):
+    """Generate a string with the command INSERT INTO for the table table_name
+    with values of the list
+
+    Args:
+        table_name (str): Name of the table for the command
+        list_obj (list): List with the values to insert to the table
+
+    Returns:
+        _type_: _description_
+    """
     sql_string = "INSERT INTO " + table_name
     sql_values = " VALUES"
     fields_list = []
@@ -217,6 +262,8 @@ def insert_fields_statement(table_name, list_obj):
 
 
 def catalog_users():
+    """Generation of the catalog users in the database streaming
+    """
     try:
         conection = database_connect(os.environ.get('DB_HOST'),
                                      os.environ.get('DB_USER'),
@@ -234,17 +281,44 @@ def catalog_users():
 
 
 def relative_path(file_name):
+    """Generation of a relative path for read the datasets of files .csv 
+
+    Args:
+        file_name (str): name of the file .csv
+
+    Returns:
+        str: The relative path
+    """
     current_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(current_path, '..', 'data', file_name)
 
 
 def dataframe_connect(data_frame):
+    """Generation of the dataframe with Pandas module from files .csv
+
+    Args:
+        data_frame (str): path complete with the name of file .csv
+
+    Returns:
+        DataFrame: Dataframe of Pandas of the file .csv
+    """
     df = pd.read_csv(data_frame)
 
     return df
 
 
 def database_connect(host_name, user_name, passwd, db_name):
+    """Connection to the database streaming with the package pyMySQL
+
+    Args:
+        host_name (str): Name of host MySQL
+        user_name (str): User for the connection (root)
+        passwd (str): Password of the user
+        db_name (str): Name of the database
+
+    Returns:
+        connection: Connection to the database streaming
+    """
     conection = pymysql.connect(host=host_name,
                                 user=user_name,
                                 password=passwd,
@@ -253,6 +327,15 @@ def database_connect(host_name, user_name, passwd, db_name):
 
 
 def find_iso(dict_obj, country_name):
+    """Function to find iso codes of countries in dictionary
+
+    Args:
+        dict_obj (dict): Dictionary obtained from file paises.csv
+        country_name (str): Name of the country to find iso code
+
+    Returns:
+        str: ISO code of the country
+    """
     if country_name in dict_obj:
         # Return tne value of the key country_name.
         return dict_obj[country_name]
@@ -261,10 +344,19 @@ def find_iso(dict_obj, country_name):
 
 
 def message_success():
+    """Message successful of the process insertion to database
+    """
     print('the process of insertion was successful')
 
 
 def execute_statment(sql_command, conect_obj, table_name):
+    """Function for execute a command of insertion to the database
+
+    Args:
+        sql_command (str): Command of insertion
+        conect_obj (connection): Conection to the database streaming
+        table_name (str): Name of the table to insert data
+    """
     counter_command = ''
     try:
         with conect_obj.cursor() as cursor:
@@ -287,6 +379,12 @@ def execute_statment(sql_command, conect_obj, table_name):
 
 
 def catalog_insert(table_name):
+    """Funtion for generate litle catalogs of the database streaming
+
+    Args:
+        table_name (str): Name of the table of litle catalog how: age_ratings,
+        film_genders,origin_countries and streaming_services
+    """
     try:
         conection = database_connect(os.environ.get('DB_HOST'),
                                      os.environ.get('DB_USER'),
@@ -336,6 +434,16 @@ def catalog_insert(table_name):
 
 
 def insert_statment(table_name, list_obj, dict_obj={}):
+    """Generate the command INSERT INTO for litle catalogs
+
+    Args:
+        table_name (str): Name of the table of litle catalog
+        list_obj (list): List with the values to insert
+        dict_obj (dict, optional): Dictionary with ISO codes for the countries. Defaults to {}.
+
+    Returns:
+        str: String with the command INSERT INTO
+    """
 
     sql_insert = "INSERT INTO " + table_name + "("
     field_count = 0  # Initialize the fields'count
@@ -389,6 +497,11 @@ def insert_statment(table_name, list_obj, dict_obj={}):
 
 
 def country_iso_codes():
+    """Preparation of dataset for ISO Codes of the countries
+
+    Returns:
+        dict: Dictionary with data of the ISO Codes of the countries
+    """
 
     # Conect to the dataframe of iso contries code with pandas.
     country_path = relative_path('paises.csv')
@@ -427,7 +540,9 @@ def run():
     4 - Create Catalog Streaming_services
     5 - Create Catalog Users
     6 - Create Catalog Movies
-    7 - Exit program
+    7 - Create Catalog Series
+    8 - Create Catalog Seasons
+    9 - Exit program
 
     Chose an option: """
     while option != 7:
@@ -446,6 +561,10 @@ def run():
         elif option == 6:
             catalog_movies()
         elif option == 7:
+            catalog_series()
+        elif option == 8:
+            catalog_seasons()
+        elif option == 9:
             break
         else:
             print("Please enter a correct option")
