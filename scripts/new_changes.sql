@@ -47,3 +47,17 @@ CREATE TABLE series_streamings (
     FOREIGN KEY (serie_id) REFERENCES series(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (streaming_id) REFERENCES streaming_services(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
+
+ALTER TABLE series CHANGE chapters serie_year INT NOT NULL;
+
+ALTER TABLE user_series DROP CONSTRAINT user_series_ibfk_1;
+
+ALTER TABLE user_series DROP COLUMN serie_season_id;
+
+DROP TABLE series_seasons;
+
+DROP TABLE seasons;
+
+ALTER TABLE user_series ADD COLUMN serie_id INT NOT NULL AFTER id;
+
+ALTER TABLE user_series ADD CONSTRAINT `user_series_ibfk_1` FOREIGN KEY (`serie_id`) REFERENCES `series` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

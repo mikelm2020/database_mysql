@@ -1,6 +1,7 @@
 import csv
 import os
 import time
+from numpy import full
 
 
 import pymysql
@@ -21,6 +22,8 @@ MOVIES_SCHEMA = ['movie_name', 'duration', 'movie_year',
 STREAMING_SERVICES_SCHEMA = ['streaming_service']
 
 USERS_SCHEMA = ['login', 'pass', 'user_name']
+
+SERIES_SCHEMA = ['serie_name', 'seasons', 'serie_year', 'age_rating_id']
 
 
 def find_key(id_field, table_name, field, data_find):
@@ -61,48 +64,40 @@ def find_key(id_field, table_name, field, data_find):
     return fk_data
 
 
-def catalog_series():
-    pass
-
-
-def catalog_seasons():
-    pass
-
-
-def insert_movies_to_list(obj_list):
-    """Generate a list completed with values of the list of lists of table movies
+def insert_catalogs_to_list(obj_list, table_name):
+    """Generate a list completed with values of the list of lists of full catalogs
 
     Args:
-        obj_list (list): list obtained from data set movies.csv how a list of lists
+        obj_list (list): list obtained from data set of full catalogs how a list of lists
 
     Returns:
         list: list converted with values of foreign keys
     """
     fk_value = 0
-    list_movies = []
+    list_catalogs = []
 
-    for list_element in obj_list:
-        for element in list_element:
-            if list_element.index(element) == len(list_element) - 1:
-                fk_value = find_key('id', 'age_ratings', 'age_rating', element)
-                list_movies.append(str(fk_value))
-            else:
-                list_movies.append(element if type(element)
-                                   == str else str(element))
+    if table_name == 'movies':
+        for list_element in obj_list:
+            for element in list_element:
+                if list_element.index(element) == len(list_element) - 1:
+                    fk_value = find_key('id', 'age_ratings', 'age_rating', element)
+                    list_catalogs.append(str(fk_value))
+                else:
+                    list_catalogs.append(element if type(element)
+                                    == str else str(element))
 
-    return list_movies
+    if table_name == 'series':
+        pass
 
-
-def insert_series(obj_list):
-    pass
+    return list_catalogs
 
 
 def obtain_data(obj_list, table_name):
-    """Function for obtain data from movies set movies.csv for each table needed
+    """Function for obtain data from full catalogs set for each table needed
 
     Args:
-        obj_list (list): List obtained from movies set movies.csv in pure form
-        table_name (str): Table by fill with data from movies set movies.csv
+        obj_list (list): List obtained from full catalogs set in pure form
+        table_name (str): Table by fill with data from full catalogs set
 
     Returns:
         list: List with the information required for fill the table
@@ -110,28 +105,68 @@ def obtain_data(obj_list, table_name):
     list_table = []
     sql_command = ''
     if table_name == 'movies':
-        list_table = insert_movies_to_list(obj_list)
+        list_table = insert_catalogs_to_list(obj_list, 'movies')
     if table_name == 'series':
-        insert_series(obj_list)
+        list_table = insert_catalogs_to_list(obj_list, 'series')
+    
     return list_table
 
 
-def generate_movies():
-    """Generate the list with information of the movies from data set movies.csv
+def generate_catalogs(table_name):
+    """Generate the list with information of full catalogs from data set movies.csv
+    or netflix.csv
 
     Returns:
-        list: List with information of movies in pure form
+        list: List with information of movies or series in pure form
     """
-    # Create the movies_set with movies of the dataset movies.csv
-    movies_set = create_movies_set()
+    catalog_list = []
+    if table_name == 'movies':
+        # Create the movies_set with movies of the dataset movies.csv
+        movies_set = create_movies_set()
 
-    # Filter the movies_set by Netflix or Amazon Prime or Disney+
-    cols = ['Title', 'Runtime', 'Year', 'Age']
-    query = 'Netflix == 1 | Prime == 1 | Disney == 1'
-    movie_name_list = movies_set.query(query)[cols].values.tolist()
-    # Create the string for insert data for the table movies
-    movies_list = obtain_data(movie_name_list, 'movies')
-    return movies_list
+        # Filter the movies_set by Netflix or Amazon Prime or Disney+
+        cols = ['Title', 'Runtime', 'Year', 'Age']
+        query = 'Netflix == 1 | Prime == 1 | Disney == 1'
+        movie_name_list = movies_set.query(query)[cols].values.tolist()
+        # Create the string for insert data for the table movies
+        catalog_list = obtain_data(movie_name_list, 'movies')
+
+    if table_name == 'series':
+        # Create the series set with series of the dataset netflix.csv
+        series_set = create_series_set()
+        # Define columns for table series
+        cols = ['title', 'duration', 'release_year', 'rating']
+        #Convert to list the dataset
+        series_name_list = series_set.values.tolist()
+        print(series_name_list)
+        # Create the string for insert data for the table series
+        catalog_list = obtain_data(series_name_list, 'series')
+
+    return catalog_list
+
+
+def create_series_set():
+    """Obtain the series set with information of the file netflix.csv
+
+    Returns:
+        DataFrame: Dataframe of Pandas with the information of series from netflix.csv
+    """
+    # Conect to the dataframe of Serires with pandas.
+    series_path = relative_path('netflix.csv')
+    data_frame_series = dataframe_connect(series_path)
+
+    # Delete records with nan values.
+    data_frame_series = data_frame_series.dropna()
+
+    # Filter the dataframe with series of Netfix
+    df_series_filter = data_frame_series.query("type == 'TV Show'")
+
+    # Create a new dataframe with especifics columns.
+    cols = ['show_id', 'type', 'title', 'country', 'release_year', 'rating', 
+        'duration', 'listed_in']
+    catalogs_set = df_series_filter[cols]
+    
+    return catalogs_set
 
 
 def create_movies_set():
@@ -158,14 +193,14 @@ def create_movies_set():
     # Create a new dataframe with especifics columns.
     cols = ['ID', 'Title', 'Year', 'Age', 'Netflix', 'Prime', 'Disney',
             'Genres', 'Country', 'Runtime']
-    movies_set = df_movies_filter[cols]
-    movies_set['Country'].dropna().str.split(',').explode().unique()
+    catalogs_set = df_movies_filter[cols]
+    catalogs_set['Country'].dropna().str.split(',').explode().unique()
+    
+    return catalogs_set
 
-    return movies_set
 
-
-def catalog_movies():
-    """Create of the catalog of movies for database streaming
+def full_catalogs(table_name):
+    """Create of the full catalog how movies, series for database streaming
     """
     # Generate the conection to mySQL database.
     try:
@@ -174,13 +209,22 @@ def catalog_movies():
                                      os.environ.get('DB_PASS'),
                                      os.environ.get('DB_NAME'))
 
-        # List of movies with data for the schema
-        movies_list = []
+        catalog_list = []
         sql_command = ''
 
-        movies_list = generate_movies()
-        sql_command = insert_fields_statement('movies', movies_list)
-        execute_statment(sql_command, conection, 'movies')
+        if table_name == 'movies':
+            # List of movies with data for the schema
+            catalog_list = generate_catalogs('movies')
+            sql_command = insert_fields_statement('movies', catalog_list)
+            execute_statment(sql_command, conection, 'movies')
+
+        if table_name == 'series':
+            # List of series with data for the schema
+            catalog_list = generate_catalogs('series')
+            # sql_command = insert_fields_statement('series', catalog_list)
+            # execute_statment(sql_command, conection, 'series')
+
+
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
@@ -559,11 +603,11 @@ def run():
         elif option == 5:
             catalog_users()
         elif option == 6:
-            catalog_movies()
+            full_catalogs('movies')
         elif option == 7:
-            catalog_series()
+            full_catalogs('series')
         elif option == 8:
-            catalog_seasons()
+            full_catalogs('seasons')
         elif option == 9:
             break
         else:

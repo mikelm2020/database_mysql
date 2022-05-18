@@ -98,7 +98,7 @@ CREATE TABLE `movies` (
   PRIMARY KEY (`id`),
   KEY `age_rating_id` (`age_rating_id`),
   CONSTRAINT `movies_ibfk_3` FOREIGN KEY (`age_rating_id`) REFERENCES `age_ratings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3036 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -133,21 +133,6 @@ CREATE TABLE `origin_countries` (
   `iso_code` char(3) COLLATE utf8_spanish2_ci NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The countries of origin of movies or series with ISO 3166-1 code';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `seasons`
---
-
-DROP TABLE IF EXISTS `seasons`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `seasons` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `season` smallint NOT NULL DEFAULT '1',
-  `chapters` smallint NOT NULL DEFAULT '8',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The seasons of the series by number of chapters';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -199,32 +184,13 @@ CREATE TABLE `series` (
   `id` int NOT NULL AUTO_INCREMENT,
   `serie_name` varchar(150) COLLATE utf8_spanish2_ci NOT NULL,
   `seasons` smallint NOT NULL DEFAULT '1',
-  `chapters` smallint NOT NULL,
+  `serie_year` int NOT NULL,
   `age_rating_id` int NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `age_rating_id` (`age_rating_id`),
   CONSTRAINT `series_ibfk_3` FOREIGN KEY (`age_rating_id`) REFERENCES `age_ratings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `series_seasons`
---
-
-DROP TABLE IF EXISTS `series_seasons`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `series_seasons` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `serie_id` int NOT NULL,
-  `season_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `serie_id` (`serie_id`),
-  KEY `season_id` (`season_id`),
-  CONSTRAINT `series_seasons_ibfk_1` FOREIGN KEY (`serie_id`) REFERENCES `series` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `series_seasons_ibfk_2` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='All seasons of the series actually ';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -291,14 +257,14 @@ DROP TABLE IF EXISTS `user_series`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `user_series` (
   `id` int NOT NULL,
+  `serie_id` int NOT NULL,
   `serie_viewed` tinyint(1) NOT NULL DEFAULT '0',
-  `serie_season_id` int NOT NULL,
   `user_id` int NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
-  KEY `serie_season_id` (`serie_season_id`),
   KEY `user_id` (`user_id`),
-  CONSTRAINT `user_series_ibfk_1` FOREIGN KEY (`serie_season_id`) REFERENCES `series_seasons` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  KEY `user_series_ibfk_1` (`serie_id`),
+  CONSTRAINT `user_series_ibfk_1` FOREIGN KEY (`serie_id`) REFERENCES `series` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `user_series_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci COMMENT='The play list with series for the users';
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -329,4 +295,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-05-13  0:20:30
+-- Dump completed on 2022-05-18  3:38:42
