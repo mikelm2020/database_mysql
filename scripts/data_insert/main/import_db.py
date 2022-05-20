@@ -26,6 +26,23 @@ USERS_SCHEMA = ['login', 'pass', 'user_name']
 SERIES_SCHEMA = ['serie_name', 'seasons', 'serie_year', 'age_rating_id']
 
 
+def export_df(table_name):
+    # Create an empty dataframe
+    df = pd.DataFrame()
+    # Create a conection to database
+    conect_obj = database_connect(os.environ.get('DB_HOST'),
+                                  os.environ.get('DB_USER'),
+                                  os.environ.get('DB_PASS'),
+                                  os.environ.get('DB_NAME'))
+
+
+    if table_name == 'movies':
+        df = create_movies_set()
+        # Create a temporal table of the movies from dataset movies
+        df.to_sql(name='movies_tmp', con=conect_obj,if_exists='replace',index=False)
+
+
+
 def find_key(id_field, table_name, field, data_find):
     """Find the value of the foreign key of the tables
 
@@ -64,11 +81,28 @@ def find_key(id_field, table_name, field, data_find):
     return fk_data
 
 
+def map_fk(fk_value_find):
+    dict_age_ratings = {
+        'PG-13': 1,
+        'TV-MA': 2,
+        'PG': 4,
+        'TV-Y7': 3,
+        'R': 2,
+        'G': 4,
+        'NC-17': 5
+    }
+
+    # Search the key
+    return dict_age_ratings.get(fk_value_find, 0)
+
+
+
 def insert_catalogs_to_list(obj_list, table_name):
     """Generate a list completed with values of the list of lists of full catalogs
 
     Args:
         obj_list (list): list obtained from data set of full catalogs how a list of lists
+        table_name (str): name of the table with the foreign key
 
     Returns:
         list: list converted with values of foreign keys
@@ -76,18 +110,22 @@ def insert_catalogs_to_list(obj_list, table_name):
     fk_value = 0
     list_catalogs = []
 
-    if table_name == 'movies':
-        for list_element in obj_list:
-            for element in list_element:
-                if list_element.index(element) == len(list_element) - 1:
+    # if table_name == 'movies':
+    for list_element in obj_list:
+        for element in list_element:
+            if list_element.index(element) == len(list_element) - 1:
+                if table_name == 'movies':
                     fk_value = find_key('id', 'age_ratings', 'age_rating', element)
-                    list_catalogs.append(str(fk_value))
-                else:
-                    list_catalogs.append(element if type(element)
-                                    == str else str(element))
+                if table_name == 'series':
+                    #  Map the value of age_rating of the list with the value 
+                    # on tha table age_aratings
+                    fk_value = map_fk(element)
 
-    if table_name == 'series':
-        pass
+                list_catalogs.append(str(fk_value))
+            else:
+                list_catalogs.append(element if type(element)
+                                == str else str(element))
+
 
     return list_catalogs
 
@@ -135,10 +173,10 @@ def generate_catalogs(table_name):
         # Create the series set with series of the dataset netflix.csv
         series_set = create_series_set()
         # Define columns for table series
-        cols = ['title', 'duration', 'release_year', 'rating']
+        cols = ['title', 'season', 'release_year', 'rating']
         #Convert to list the dataset
-        series_name_list = series_set.values.tolist()
-        print(series_name_list)
+        series_name_list = series_set[cols].values.tolist()
+        
         # Create the string for insert data for the table series
         catalog_list = obtain_data(series_name_list, 'series')
 
@@ -158,12 +196,17 @@ def create_series_set():
     # Delete records with nan values.
     data_frame_series = data_frame_series.dropna()
 
-    # Filter the dataframe with series of Netfix
-    df_series_filter = data_frame_series.query("type == 'TV Show'")
+    # Create a new column season with the number of seasons
+    data_frame_series['season'] = data_frame_series['duration'].str.slice(0,1)
+
+    # Filter the dataframe with series of Netfix and this age ratings
+    string_sql = "type == 'TV Show' & (rating == 'TV-MA' | rating == 'PG-13' | rating == 'PG' | \
+                rating == 'TV-Y7' | rating == 'R' | rating == 'G' | rating == 'NC-17')"
+    df_series_filter = data_frame_series.query(string_sql)
 
     # Create a new dataframe with especifics columns.
     cols = ['show_id', 'type', 'title', 'country', 'release_year', 'rating', 
-        'duration', 'listed_in']
+        'season', 'listed_in']
     catalogs_set = df_series_filter[cols]
     
     return catalogs_set
@@ -201,6 +244,9 @@ def create_movies_set():
 
 def full_catalogs(table_name):
     """Create of the full catalog how movies, series for database streaming
+
+    Args:
+        table_name (str): name of the table of the full catalog
     """
     # Generate the conection to mySQL database.
     try:
@@ -221,10 +267,10 @@ def full_catalogs(table_name):
         if table_name == 'series':
             # List of series with data for the schema
             catalog_list = generate_catalogs('series')
-            # sql_command = insert_fields_statement('series', catalog_list)
-            # execute_statment(sql_command, conection, 'series')
+            sql_command = insert_fields_statement('series', catalog_list)
+            execute_statment(sql_command, conection, 'series')
 
-
+        print(sql_command)
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
@@ -269,6 +315,9 @@ def insert_fields_statement(table_name, list_obj):
 
     if table_name == 'movies':
         fields_list = MOVIES_SCHEMA
+
+    if table_name == 'series':
+        fields_list = SERIES_SCHEMA
 
     for field in fields_list:
         sql_string = sql_string + field
@@ -585,7 +634,7 @@ def run():
     5 - Create Catalog Users
     6 - Create Catalog Movies
     7 - Create Catalog Series
-    8 - Create Catalog Seasons
+    8 - Export Dataframe Movies to database
     9 - Exit program
 
     Chose an option: """
@@ -607,7 +656,7 @@ def run():
         elif option == 7:
             full_catalogs('series')
         elif option == 8:
-            full_catalogs('seasons')
+            export_df('movies')
         elif option == 9:
             break
         else:
