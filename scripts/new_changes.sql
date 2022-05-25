@@ -61,3 +61,18 @@ DROP TABLE seasons;
 ALTER TABLE user_series ADD COLUMN serie_id INT NOT NULL AFTER id;
 
 ALTER TABLE user_series ADD CONSTRAINT `user_series_ibfk_1` FOREIGN KEY (`serie_id`) REFERENCES `series` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+CREATE TABLE movies_tmp (
+    title varchar(150),
+    netflix INTEGER,
+    prime INTEGER,
+    disney INTEGER,
+    genres varchar(70),
+    country varchar(220)
+);
+
+CREATE TABLE series_tmp (
+    title varchar(105),
+    country varchar(83),
+    listed_in varchar(70)
+);

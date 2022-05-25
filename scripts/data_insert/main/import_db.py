@@ -25,23 +25,61 @@ USERS_SCHEMA = ['login', 'pass', 'user_name']
 
 SERIES_SCHEMA = ['serie_name', 'seasons', 'serie_year', 'age_rating_id']
 
+MOVIES_TMP_SCHEMA = ['title', 'netflix', 'prime', 'disney', 'genres', 'country']
+
+SERIES_TMP_SCHEMA = ['title', 'country', 'listed_in']
+
+
+def insert_temporal_to_list(obj_list):
+    """Generate a list completed with values of the list of lists of temporal tables
+
+    Args:
+        obj_list (list): list obtained from data set of temporal table how a list of lists
+
+    Returns:
+        list: list converted with values in only list
+    """
+    
+    list_catalogs = []
+
+    for list_element in obj_list:
+        for element in list_element:
+                if type(element) == str:
+                    value_element = element
+                elif type(element) == float:
+                    value_element = str(int(element))
+                else:
+                    value_element = str(element)
+                list_catalogs.append(value_element)
+
+
+    return list_catalogs
 
 def export_df(table_name):
-    # Create an empty dataframe
-    df = pd.DataFrame()
-    # Create a conection to database
-    conect_obj = database_connect(os.environ.get('DB_HOST'),
-                                  os.environ.get('DB_USER'),
-                                  os.environ.get('DB_PASS'),
-                                  os.environ.get('DB_NAME'))
+    # Generate the conection to mySQL database.
+    try:
+        conection = database_connect(os.environ.get('DB_HOST'),
+                                     os.environ.get('DB_USER'),
+                                     os.environ.get('DB_PASS'),
+                                     os.environ.get('DB_NAME'))
 
+        # Create an empty dataframe
+        df = pd.DataFrame()
+        
+        if table_name == 'movies_tmp':
+            df = create_movies_set()
+            cols = ['Title', 'Netflix', 'Prime', 'Disney', 'Genres', 'Country']
+            query = 'Netflix == 1 | Prime == 1 | Disney == 1'
+            #Convert to list the dataset
+            catalog_list = df.query(query)[cols].values.tolist()
+            # Convert in a unique list
+            list_temporal = insert_temporal_to_list(catalog_list)        
+            sql_command = insert_fields_statement('movies_tmp', list_temporal)
+            execute_statement(sql_command, conection, 'movies_tmp')
 
-    if table_name == 'movies':
-        df = create_movies_set()
-        # Create a temporal table of the movies from dataset movies
-        df.to_sql(name='movies_tmp', con=conect_obj,if_exists='replace',index=False)
-
-
+    except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
+        print("An error occurred while connecting: ", e)
+        
 
 def find_key(id_field, table_name, field, data_find):
     """Find the value of the foreign key of the tables
@@ -82,6 +120,14 @@ def find_key(id_field, table_name, field, data_find):
 
 
 def map_fk(fk_value_find):
+    """Dictionary of age ratings for map ratings from netflix.csv dataset
+
+    Args:
+        fk_value_find (int): Foreign key of netflix.csv dataset
+
+    Returns:
+        int: Id from table Age_ratings
+    """
     dict_age_ratings = {
         'PG-13': 1,
         'TV-MA': 2,
@@ -154,6 +200,9 @@ def generate_catalogs(table_name):
     """Generate the list with information of full catalogs from data set movies.csv
     or netflix.csv
 
+    Args:
+        table_name (str): Name of the table of a full catalog how: movies, series, etc
+
     Returns:
         list: List with information of movies or series in pure form
     """
@@ -165,6 +214,7 @@ def generate_catalogs(table_name):
         # Filter the movies_set by Netflix or Amazon Prime or Disney+
         cols = ['Title', 'Runtime', 'Year', 'Age']
         query = 'Netflix == 1 | Prime == 1 | Disney == 1'
+        #Convert to list the dataset
         movie_name_list = movies_set.query(query)[cols].values.tolist()
         # Create the string for insert data for the table movies
         catalog_list = obtain_data(movie_name_list, 'movies')
@@ -237,7 +287,6 @@ def create_movies_set():
     cols = ['ID', 'Title', 'Year', 'Age', 'Netflix', 'Prime', 'Disney',
             'Genres', 'Country', 'Runtime']
     catalogs_set = df_movies_filter[cols]
-    catalogs_set['Country'].dropna().str.split(',').explode().unique()
     
     return catalogs_set
 
@@ -262,13 +311,13 @@ def full_catalogs(table_name):
             # List of movies with data for the schema
             catalog_list = generate_catalogs('movies')
             sql_command = insert_fields_statement('movies', catalog_list)
-            execute_statment(sql_command, conection, 'movies')
+            execute_statement(sql_command, conection, 'movies')
 
         if table_name == 'series':
             # List of series with data for the schema
             catalog_list = generate_catalogs('series')
             sql_command = insert_fields_statement('series', catalog_list)
-            execute_statment(sql_command, conection, 'series')
+            execute_statement(sql_command, conection, 'series')
 
         print(sql_command)
 
@@ -319,8 +368,14 @@ def insert_fields_statement(table_name, list_obj):
     if table_name == 'series':
         fields_list = SERIES_SCHEMA
 
+    if table_name == 'movies_tmp':
+        fields_list = MOVIES_TMP_SCHEMA
+
+    if table_name == 'series_tmp':
+        fields_list = SERIES_TMP_SCHEMA
+
     for field in fields_list:
-        sql_string = sql_string + field
+        sql_string += field
         index_field = fields_list.index(field)
 
         if index_field == len(fields_list) - 1:
@@ -328,27 +383,27 @@ def insert_fields_statement(table_name, list_obj):
         else:
             character = ','
 
-        sql_string = sql_string + character
+        sql_string += character
 
     # Add values
     index_field = 0
-    sql_string = sql_string + sql_values
+    sql_string += sql_values
     for element in list_obj:
         index_element = list_obj.index(element)
         if index_field == 0:
             if index_element == 0:
-                sql_string = sql_string + '('
+                sql_string += '('
             else:
-                sql_string = sql_string + ',('
-            sql_string = sql_string + "'" + element + "'"
+                sql_string += ',('
+            sql_string += "'" + element + "'"
             index_field += 1
         elif index_field == len(fields_list) - 1:
-            sql_string = sql_string + ", '" + element + "'"
-            sql_string = sql_string + ')'
+            sql_string += ", '" + element + "'"
+            sql_string += ')'
             index_field = 0
         else:
-            sql_string = sql_string + ', '
-            sql_string = sql_string + "'" + element + "'"
+            sql_string += ', '
+            sql_string += "'" + element + "'"
             index_field += 1
 
     return sql_string
@@ -367,7 +422,7 @@ def catalog_users():
 
         profile_list = user_profile()
         sql_command = insert_fields_statement('users', profile_list)
-        execute_statment(sql_command, conection, 'users')
+        execute_statement(sql_command, conection, 'users')
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
@@ -436,13 +491,13 @@ def find_iso(dict_obj, country_name):
         return '000'
 
 
-def message_success():
-    """Message successful of the process insertion to database
+def message_success(message):
+    """Message successful of the process
     """
-    print('the process of insertion was successful')
+    print(message)
 
 
-def execute_statment(sql_command, conect_obj, table_name):
+def execute_statement(sql_command, conect_obj, table_name):
     """Function for execute a command of insertion to the database
 
     Args:
@@ -461,7 +516,7 @@ def execute_statment(sql_command, conect_obj, table_name):
             # If the count is zero then excute the command.
             if registers_count == 0:
                 cursor.execute(sql_command)
-                message_success()
+                message_success('the process of insertion was successful')
             else:
                 print('The table {}'.format(table_name) +
                       ' you already have records')
@@ -495,15 +550,15 @@ def catalog_insert(table_name):
         if table_name == 'age_ratings':
             age_ratings_list = (movies_set['Age'].unique()).tolist()
 
-            sql_string = insert_statment('age_ratings', age_ratings_list)
-            execute_statment(sql_string, conection, 'age_ratings')
+            sql_string = insert_statement('age_ratings', age_ratings_list)
+            execute_statement(sql_string, conection, 'age_ratings')
 
         if table_name == 'film_genders':
             genders_list = (movies_set['Genres'].dropna().str.split(',').
                             explode().unique()).tolist()
 
-            sql_string = insert_statment('film_genders', genders_list)
-            execute_statment(sql_string, conection, 'film_genders')
+            sql_string = insert_statement('film_genders', genders_list)
+            execute_statement(sql_string, conection, 'film_genders')
 
         if table_name == 'origin_countries':
             countries_list = (movies_set['Country'].dropna().str.split(',').
@@ -511,22 +566,22 @@ def catalog_insert(table_name):
 
             dict_iso_codes = country_iso_codes()
 
-            sql_string = insert_statment('origin_countries', countries_list,
+            sql_string = insert_statement('origin_countries', countries_list,
                                          dict_iso_codes)
-            execute_statment(sql_string, conection, 'origin_countries')
+            execute_statement(sql_string, conection, 'origin_countries')
 
         if table_name == 'streaming_services':
             streaming_list = ['Netfix', 'Disney Plus', 'Amazon Prime',
                               'HBO Max', 'Paramount Plus']
-            sql_string = insert_statment('streaming_services',
+            sql_string = insert_statement('streaming_services',
                                          streaming_list)
-            execute_statment(sql_string, conection, 'streaming_services')
+            execute_statement(sql_string, conection, 'streaming_services')
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
 
 
-def insert_statment(table_name, list_obj, dict_obj={}):
+def insert_statement(table_name, list_obj, dict_obj={}):
     """Generate the command INSERT INTO for litle catalogs
 
     Args:
@@ -638,7 +693,7 @@ def run():
     9 - Exit program
 
     Chose an option: """
-    while option != 7:
+    while option != 9:
         option = int(input(menu))
 
         if option == 1:
@@ -656,12 +711,12 @@ def run():
         elif option == 7:
             full_catalogs('series')
         elif option == 8:
-            export_df('movies')
+            export_df('movies_tmp')
         elif option == 9:
             break
         else:
             print("Please enter a correct option")
-        time.sleep(60)
+        time.sleep(20)
         os.system('clear')
 
 

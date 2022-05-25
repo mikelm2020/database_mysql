@@ -1,6 +1,6 @@
 cffi==1.15.0
 cryptography==36.0.2
-Faker==13.3.5
+Faker==13.11.1
 greenlet==1.1.2
 numpy==1.22.3
 pandas==1.4.1
