@@ -121,6 +121,23 @@ CREATE TABLE `movies_streamings` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `movies_tmp`
+--
+
+DROP TABLE IF EXISTS `movies_tmp`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `movies_tmp` (
+  `title` varchar(150) COLLATE utf8_spanish2_ci DEFAULT NULL,
+  `netflix` int DEFAULT NULL,
+  `prime` int DEFAULT NULL,
+  `disney` int DEFAULT NULL,
+  `genres` varchar(70) COLLATE utf8_spanish2_ci DEFAULT NULL,
+  `country` varchar(220) COLLATE utf8_spanish2_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `origin_countries`
 --
 
@@ -190,7 +207,7 @@ CREATE TABLE `series` (
   PRIMARY KEY (`id`),
   KEY `age_rating_id` (`age_rating_id`),
   CONSTRAINT `series_ibfk_3` FOREIGN KEY (`age_rating_id`) REFERENCES `age_ratings` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=88 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -209,6 +226,20 @@ CREATE TABLE `series_streamings` (
   KEY `streaming_id` (`streaming_id`),
   CONSTRAINT `series_streamings_ibfk_1` FOREIGN KEY (`serie_id`) REFERENCES `series` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `series_streamings_ibfk_2` FOREIGN KEY (`streaming_id`) REFERENCES `streaming_services` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `series_tmp`
+--
+
+DROP TABLE IF EXISTS `series_tmp`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `series_tmp` (
+  `title` varchar(105) COLLATE utf8_spanish2_ci DEFAULT NULL,
+  `country` varchar(83) COLLATE utf8_spanish2_ci DEFAULT NULL,
+  `listed_in` varchar(70) COLLATE utf8_spanish2_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8_spanish2_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -295,4 +326,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-05-18  3:38:42
+-- Dump completed on 2022-05-25  3:14:22
