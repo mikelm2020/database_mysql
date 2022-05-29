@@ -76,3 +76,27 @@ CREATE TABLE series_tmp (
     country varchar(83),
     listed_in varchar(70)
 );
+
+ALTER TABLE series_tmp ADD COLUMN type varchar(7);
+
+ALTER TABLE series_tmp ADD COLUMN rating varchar(5);
+
+CREATE TABLE movie_genres_tmp (
+    title varchar(150),
+    genre varchar(70)
+);
+
+CREATE TABLE movie_countries_tmp (
+    title varchar(150),
+    country varchar(100)
+);
+
+CREATE TABLE serie_genres_tmp (
+    title varchar(105),
+    listed_in varchar(70)
+);
+
+CREATE TABLE serie_countries_tmp (
+    title varchar(105),
+    country varchar(83)
+);

@@ -1,7 +1,6 @@
 import csv
 import os
 import time
-from numpy import full
 
 
 import pymysql
@@ -25,9 +24,91 @@ USERS_SCHEMA = ['login', 'pass', 'user_name']
 
 SERIES_SCHEMA = ['serie_name', 'seasons', 'serie_year', 'age_rating_id']
 
-MOVIES_TMP_SCHEMA = ['title', 'netflix', 'prime', 'disney', 'genres', 'country']
+MOVIES_TMP_SCHEMA = ['title', 'netflix',
+                     'prime', 'disney', 'genres', 'country']
+                    
+MOVIE_GENRES_TMP_SCHEMA = ['title', 'genre']
 
-SERIES_TMP_SCHEMA = ['title', 'country', 'listed_in']
+MOVIE_COUNTRIES_TMP_SCHEMA = ['title', 'country']
+
+SERIES_TMP_SCHEMA = ['title', 'country', 'listed_in', 'type', 'rating']
+
+SERIE_GENRES_TMP_SCHEMA = ['title', 'listed_in']
+
+SERIE_COUNTRIES_TMP_SCHEMA = ['title', 'country']
+
+
+def execute_insert_two(table_name, field_1, field_2, obj_list, conect_obj):
+    sql_command = f"INSERT INTO {table_name} ({field_1}, {field_2}) VALUES (%s, %s)"
+    try:
+        with conect_obj.cursor() as cursor:
+            counter_command = "Select count(*) from " + table_name
+            cursor.execute(counter_command)
+            # Return the count of registers.
+            registers_count = cursor.fetchone()[0]
+
+            # If the count is zero then excute the command.
+            if registers_count == 0:
+                cursor.executemany(sql_command, obj_list)
+                message_success('the process of insertion was successful')
+            else:
+                print('The table {}'.format(table_name) +
+                      ' you already have records')
+
+        conect_obj.commit()
+    finally:
+        conect_obj.close()
+    
+
+def generate_list_multivalue(obj_list, table_name, field_multi):
+    list_multival = []
+    new_list = []
+    i = 0
+    j = 0
+    step = 0
+    if table_name == 'movies_tmp':
+
+        step = 6
+        if field_multi == 'genres':
+            # Index of field genres
+            j = 4
+
+        if field_multi == 'country':
+            # Index of field country
+            j = 5
+
+    if table_name == 'series_tmp':
+
+        step = 5
+        if field_multi == 'listed_in':
+            # Index of field listed_in
+            j = 2
+
+        if field_multi == 'country':
+            # Index of field country
+            j = 1
+
+    while i < len(obj_list):
+        list_multival.append(obj_list[i])
+        list_multival.append(obj_list[j])
+        i += step
+        j += step
+
+    k = 0
+    title = ''
+    multival = ''
+    # Split the list of multivalues
+    for element in list_multival:
+        if k == 0:
+            k += 1
+            title = element
+        elif k == 1:
+            multival = ''.join(element).split(',')
+            for word in multival:
+                new_list.append((title, word))
+                k = 0
+
+    return new_list
 
 
 def insert_temporal_to_list(obj_list):
@@ -39,21 +120,21 @@ def insert_temporal_to_list(obj_list):
     Returns:
         list: list converted with values in only list
     """
-    
+
     list_catalogs = []
 
     for list_element in obj_list:
         for element in list_element:
-                if type(element) == str:
-                    value_element = element
-                elif type(element) == float:
-                    value_element = str(int(element))
-                else:
-                    value_element = str(element)
-                list_catalogs.append(value_element)
-
+            if type(element) == str:
+                value_element = element
+            elif type(element) == float:
+                value_element = str(int(element))
+            else:
+                value_element = str(element)
+            list_catalogs.append(value_element)
 
     return list_catalogs
+
 
 def export_df(table_name):
     # Generate the conection to mySQL database.
@@ -65,21 +146,84 @@ def export_df(table_name):
 
         # Create an empty dataframe
         df = pd.DataFrame()
-        
+
         if table_name == 'movies_tmp':
             df = create_movies_set()
             cols = ['Title', 'Netflix', 'Prime', 'Disney', 'Genres', 'Country']
             query = 'Netflix == 1 | Prime == 1 | Disney == 1'
-            #Convert to list the dataset
+            # Convert to list the dataset
             catalog_list = df.query(query)[cols].values.tolist()
             # Convert in a unique list
-            list_temporal = insert_temporal_to_list(catalog_list)        
-            sql_command = insert_fields_statement('movies_tmp', list_temporal)
-            execute_statement(sql_command, conection, 'movies_tmp')
+            list_temporal = insert_temporal_to_list(catalog_list)
+            sql_command = insert_fields_statement(table_name, list_temporal)
+            execute_statement(sql_command, conection, table_name)
+
+        if table_name == 'movie_genres_tmp':
+            df = create_movies_set()
+            cols = ['Title', 'Netflix', 'Prime', 'Disney', 'Genres', 'Country']
+            query = 'Netflix == 1 | Prime == 1 | Disney == 1'
+            # Convert to list the dataset
+            catalog_list = df.query(query)[cols].values.tolist()
+            # Convert in a unique list
+            list_temporal = insert_temporal_to_list(catalog_list)
+            # Generate a list with multivalues data for genres
+            list_multi = generate_list_multivalue(list_temporal, 'movies_tmp', 'genres')
+            execute_insert_two(table_name, 'title', 'genre', list_multi, conection)
+
+        if table_name == 'movie_countries_tmp':
+            df = create_movies_set()
+            cols = ['Title', 'Netflix', 'Prime', 'Disney', 'Genres', 'Country']
+            query = 'Netflix == 1 | Prime == 1 | Disney == 1'
+            # Convert to list the dataset
+            catalog_list = df.query(query)[cols].values.tolist()
+            # Convert in a unique list
+            list_temporal = insert_temporal_to_list(catalog_list)
+            # Generate a list with multivalues data for country in movies
+            list_multi = generate_list_multivalue(list_temporal, 'movies_tmp', 'country')
+            execute_insert_two(table_name, 'title', 'country', list_multi, conection)
+            
+
+        if table_name == 'series_tmp':
+            df = create_series_set()
+            cols = ['title', 'country', 'listed_in', 'type', 'rating']
+            query = "type == 'TV Show' & (rating == 'TV-MA' | rating == 'PG-13' | rating == 'PG' | \
+                rating == 'TV-Y7' | rating == 'R' | rating == 'G' | rating == 'NC-17')"
+            # Convert to list the dataset
+            catalog_list = df.query(query)[cols].values.tolist()
+            # Convert in a unique list of series for table temporal
+            list_temporal = insert_temporal_to_list(catalog_list)
+            sql_command = insert_fields_statement(table_name, list_temporal)
+            execute_statement(sql_command, conection, table_name)
+
+        if table_name == 'serie_genres_tmp':
+            df = create_series_set()
+            cols = ['title', 'country', 'listed_in', 'type', 'rating']
+            query = "type == 'TV Show' & (rating == 'TV-MA' | rating == 'PG-13' | rating == 'PG' | \
+                rating == 'TV-Y7' | rating == 'R' | rating == 'G' | rating == 'NC-17')"
+            # Convert to list the dataset
+            catalog_list = df.query(query)[cols].values.tolist()
+            # Convert in a unique list
+            list_temporal = insert_temporal_to_list(catalog_list)
+            # Generate a list with multivalues data for listed_in in series
+            list_multi = generate_list_multivalue(list_temporal, 'series_tmp', 'listed_in')
+            execute_insert_two(table_name, 'title', 'listed_in', list_multi, conection)
+
+        if table_name == 'serie_countries_tmp':
+            df = create_series_set()
+            cols = ['title', 'country', 'listed_in', 'type', 'rating']
+            query = "type == 'TV Show' & (rating == 'TV-MA' | rating == 'PG-13' | rating == 'PG' | \
+                rating == 'TV-Y7' | rating == 'R' | rating == 'G' | rating == 'NC-17')"
+            # Convert to list the dataset
+            catalog_list = df.query(query)[cols].values.tolist()
+            # Convert in a unique list
+            list_temporal = insert_temporal_to_list(catalog_list)
+            # Generate a list with multivalues data for country in series
+            list_multi = generate_list_multivalue(list_temporal, 'series_tmp', 'country')
+            execute_insert_two(table_name, 'title', 'country', list_multi, conection)
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
-        
+
 
 def find_key(id_field, table_name, field, data_find):
     """Find the value of the foreign key of the tables
@@ -142,7 +286,6 @@ def map_fk(fk_value_find):
     return dict_age_ratings.get(fk_value_find, 0)
 
 
-
 def insert_catalogs_to_list(obj_list, table_name):
     """Generate a list completed with values of the list of lists of full catalogs
 
@@ -161,17 +304,17 @@ def insert_catalogs_to_list(obj_list, table_name):
         for element in list_element:
             if list_element.index(element) == len(list_element) - 1:
                 if table_name == 'movies':
-                    fk_value = find_key('id', 'age_ratings', 'age_rating', element)
+                    fk_value = find_key('id', 'age_ratings',
+                                        'age_rating', element)
                 if table_name == 'series':
-                    #  Map the value of age_rating of the list with the value 
+                    #  Map the value of age_rating of the list with the value
                     # on tha table age_aratings
                     fk_value = map_fk(element)
 
                 list_catalogs.append(str(fk_value))
             else:
                 list_catalogs.append(element if type(element)
-                                == str else str(element))
-
+                                     == str else str(element))
 
     return list_catalogs
 
@@ -192,7 +335,7 @@ def obtain_data(obj_list, table_name):
         list_table = insert_catalogs_to_list(obj_list, 'movies')
     if table_name == 'series':
         list_table = insert_catalogs_to_list(obj_list, 'series')
-    
+
     return list_table
 
 
@@ -214,7 +357,7 @@ def generate_catalogs(table_name):
         # Filter the movies_set by Netflix or Amazon Prime or Disney+
         cols = ['Title', 'Runtime', 'Year', 'Age']
         query = 'Netflix == 1 | Prime == 1 | Disney == 1'
-        #Convert to list the dataset
+        # Convert to list the dataset
         movie_name_list = movies_set.query(query)[cols].values.tolist()
         # Create the string for insert data for the table movies
         catalog_list = obtain_data(movie_name_list, 'movies')
@@ -224,9 +367,9 @@ def generate_catalogs(table_name):
         series_set = create_series_set()
         # Define columns for table series
         cols = ['title', 'season', 'release_year', 'rating']
-        #Convert to list the dataset
+        # Convert to list the dataset
         series_name_list = series_set[cols].values.tolist()
-        
+
         # Create the string for insert data for the table series
         catalog_list = obtain_data(series_name_list, 'series')
 
@@ -247,7 +390,7 @@ def create_series_set():
     data_frame_series = data_frame_series.dropna()
 
     # Create a new column season with the number of seasons
-    data_frame_series['season'] = data_frame_series['duration'].str.slice(0,1)
+    data_frame_series['season'] = data_frame_series['duration'].str.slice(0, 1)
 
     # Filter the dataframe with series of Netfix and this age ratings
     string_sql = "type == 'TV Show' & (rating == 'TV-MA' | rating == 'PG-13' | rating == 'PG' | \
@@ -255,10 +398,10 @@ def create_series_set():
     df_series_filter = data_frame_series.query(string_sql)
 
     # Create a new dataframe with especifics columns.
-    cols = ['show_id', 'type', 'title', 'country', 'release_year', 'rating', 
-        'season', 'listed_in']
+    cols = ['show_id', 'type', 'title', 'country', 'release_year', 'rating',
+            'season', 'listed_in']
     catalogs_set = df_series_filter[cols]
-    
+
     return catalogs_set
 
 
@@ -287,7 +430,7 @@ def create_movies_set():
     cols = ['ID', 'Title', 'Year', 'Age', 'Netflix', 'Prime', 'Disney',
             'Genres', 'Country', 'Runtime']
     catalogs_set = df_movies_filter[cols]
-    
+
     return catalogs_set
 
 
@@ -373,6 +516,19 @@ def insert_fields_statement(table_name, list_obj):
 
     if table_name == 'series_tmp':
         fields_list = SERIES_TMP_SCHEMA
+
+    if table_name == 'serie_genres_tmp':
+        fields_list = SERIE_GENRES_TMP_SCHEMA
+
+    if table_name == 'serie_countries_tmp':
+        fields_list = SERIE_COUNTRIES_TMP_SCHEMA
+
+    if table_name == 'movie_genres_tmp':
+        fields_list = MOVIE_GENRES_TMP_SCHEMA
+
+    if table_name == 'movie_countries_tmp':
+        fields_list = MOVIE_COUNTRIES_TMP_SCHEMA
+
 
     for field in fields_list:
         sql_string += field
@@ -567,14 +723,14 @@ def catalog_insert(table_name):
             dict_iso_codes = country_iso_codes()
 
             sql_string = insert_statement('origin_countries', countries_list,
-                                         dict_iso_codes)
+                                          dict_iso_codes)
             execute_statement(sql_string, conection, 'origin_countries')
 
         if table_name == 'streaming_services':
             streaming_list = ['Netfix', 'Disney Plus', 'Amazon Prime',
                               'HBO Max', 'Paramount Plus']
             sql_string = insert_statement('streaming_services',
-                                         streaming_list)
+                                          streaming_list)
             execute_statement(sql_string, conection, 'streaming_services')
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
@@ -612,35 +768,35 @@ def insert_statement(table_name, list_obj, dict_obj={}):
 
     # Generate the string for command INSERT in the table.
     for field in fields_list:
-        sql_insert = sql_insert + field
+        sql_insert += field
         field_count = fields_list.index(field)
         if field_count < len(fields_list) - 1:
-            sql_insert = sql_insert + ', '
+            sql_insert += ', '
         else:
-            sql_insert = sql_insert + ')'
+            sql_insert += ')'
 
     index_element = 0
     # Generate the statment INSERT for the table.
-    sql_insert = sql_insert + sql_values
+    sql_insert += sql_values
     for element in list_obj:
         index_element = list_obj.index(element)
         if table_name == 'origin_countries':
             iso_code = find_iso(dict_obj, element)
             if index_element == 0:
-                sql_insert = sql_insert + "'" + element + "'" + ', ' + \
+                sql_insert += "'" + element + "'" + ', ' + \
                     "'" + iso_code + \
                     "')"
             else:
-                sql_insert = sql_insert + ", ('" + element + "'" + ', ' + \
+                sql_insert += ", ('" + element + "'" + ', ' + \
                     "'" + iso_code + \
                     "')"
         else:
             if index_element == 0:
-                sql_insert = sql_insert + "'" + element + "')"
+                sql_insert += "'" + element + "')"
             else:
-                sql_insert = sql_insert + ", ('" + element + "')"
+                sql_insert += ", ('" + element + "')"
 
-    sql_insert = sql_insert + ';'
+    sql_insert += ';'
     return sql_insert
 
 
@@ -682,18 +838,23 @@ def run():
     of playlist streaming database
 
     
-    1 - Create Catalog Age_ratings
-    2 - Create Catalog Film_genders
-    3 - Create Catalog Origin_countries
-    4 - Create Catalog Streaming_services
-    5 - Create Catalog Users
-    6 - Create Catalog Movies
-    7 - Create Catalog Series
-    8 - Export Dataframe Movies to database
-    9 - Exit program
+    1  - Create Catalog Age_ratings
+    2  - Create Catalog Film_genders
+    3  - Create Catalog Origin_countries
+    4  - Create Catalog Streaming_services
+    5  - Create Catalog Users
+    6  - Create Catalog Movies
+    7  - Create Catalog Series
+    8  - Create temporal table for movies
+    9  - Create temporal table for series
+    10 - Create temporal table for genres of movies
+    11 - Create temporal table for countries of movies
+    12 - Create temporal table for genres of series
+    13 - Create temporal table for countries of series
+    14 - Exit program
 
     Chose an option: """
-    while option != 9:
+    while option != 14:
         option = int(input(menu))
 
         if option == 1:
@@ -713,10 +874,20 @@ def run():
         elif option == 8:
             export_df('movies_tmp')
         elif option == 9:
+            export_df('series_tmp')
+        elif option == 10:
+            export_df('movie_genres_tmp')
+        elif option == 11:
+            export_df('movie_countries_tmp')
+        elif option == 12:
+            export_df('serie_genres_tmp')
+        elif option == 13:
+            export_df('serie_countries_tmp')
+        elif option == 14:
             break
         else:
             print("Please enter a correct option")
-        time.sleep(20)
+        time.sleep(5)
         os.system('clear')
 
 
