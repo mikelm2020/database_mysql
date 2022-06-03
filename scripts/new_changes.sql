@@ -100,3 +100,5 @@ CREATE TABLE serie_countries_tmp (
     title varchar(105),
     country varchar(83)
 );
+
+ALTER TABLE user_movies DROP COLUMN seasons;

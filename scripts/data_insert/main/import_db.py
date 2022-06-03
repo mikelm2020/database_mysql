@@ -1,5 +1,6 @@
-import csv
+
 import os
+import random
 import time
 
 
@@ -26,7 +27,7 @@ SERIES_SCHEMA = ['serie_name', 'seasons', 'serie_year', 'age_rating_id']
 
 MOVIES_TMP_SCHEMA = ['title', 'netflix',
                      'prime', 'disney', 'genres', 'country']
-                    
+
 MOVIE_GENRES_TMP_SCHEMA = ['title', 'genre']
 
 MOVIE_COUNTRIES_TMP_SCHEMA = ['title', 'country']
@@ -38,7 +39,178 @@ SERIE_GENRES_TMP_SCHEMA = ['title', 'listed_in']
 SERIE_COUNTRIES_TMP_SCHEMA = ['title', 'country']
 
 
+def playlist(table_name):
+    """Create a random playlist of movies or series
+
+    Args:
+        table_name (str): Table name of the playlist
+    """
+    # Generate the conection to mySQL database.
+    list_multi = []
+    try:
+        conection = database_connect(os.environ.get('DB_HOST'),
+                                     os.environ.get('DB_USER'),
+                                     os.environ.get('DB_PASS'),
+                                     os.environ.get('DB_NAME'))
+
+        if table_name == 'user_movies':
+            # Generate a list with multivalues data for movies in playlist
+            list_multi = generate_user_movies()
+            # Execute a statement Insert with 3 fields
+            execute_insert_three(table_name, 'movie_viewed',
+                                 'movie_id', 'user_id', list_multi, conection)
+
+        if table_name == 'user_series':
+            # Generate a list with multivalues data for series in playlist
+            list_multi = generate_user_series()
+            # Execute a statement Insert with 3 fields
+            execute_insert_three(
+                table_name, 'serie_id', 'serie_viewed', 'user_id', list_multi, conection)
+
+    except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
+        print("An error occurred while connecting: ", e)
+
+
+def generate_user_series():
+    """Generate a list of tuples with data for table user_series
+
+    Returns:
+        list: List of tuples of playlist of series
+    """
+    list_series_viewed = []
+    list_serie_id = []
+    list_user_id = []
+    list_user_series = []
+    new_list = []
+
+    from faker.providers import DynamicProvider
+    user_id_provider = DynamicProvider(
+        provider_name='user_id',
+        elements=[i for i in range(101, 201)],
+    )
+
+    fake = Faker().unique
+    # Add new provider to faker instance
+    fake.add_provider(user_id_provider)
+
+    list_user_id = [fake.user_id() for _ in range(50)]
+
+    for user in list_user_id:
+        size_list = random.randrange(1, 31)
+        list_serie_id = [random.randrange(1, 88) for _ in range(size_list)]
+        list_series_viewed = [random.randrange(2) for _ in range(size_list)]
+        list_user_series.append((user, list_series_viewed, list_serie_id))
+
+    i = 0
+    user_id = 0
+    list_sv = []
+    list_s = []
+
+    # Split the list of multivalues
+    for i in range(len(list_user_series)):
+        j = 0
+        user_id = list_user_series[i][0]
+        list_sv = list_user_series[i][1]
+        list_s = list_user_series[i][2]
+
+        while j < len(list_s):
+            new_list.append((list_s[j], list_sv[j], user_id))
+            j += 1
+
+    return new_list
+
+
+def generate_user_movies():
+    """Generate a list of tuples with data for table movie_series
+
+    Returns:
+        list: List of tuples of playlist of movies
+    """
+    list_movies_viewed = []
+    list_movie_id = []
+    list_user_id = []
+    list_user_movies = []
+    new_list = []
+
+    from faker.providers import DynamicProvider
+    user_id_provider = DynamicProvider(
+        provider_name='user_id',
+        elements=[i for i in range(101, 201)],
+    )
+
+    fake = Faker().unique
+    # Add new provider to faker instance
+    fake.add_provider(user_id_provider)
+
+    list_user_id = [fake.user_id() for _ in range(50)]
+
+    for user in list_user_id:
+        size_list = random.randrange(1, 31)
+        list_movie_id = [random.randrange(1, 3036) for _ in range(size_list)]
+        list_movies_viewed = [random.randrange(2) for _ in range(size_list)]
+        list_user_movies.append((user, list_movies_viewed, list_movie_id))
+
+    i = 0
+    user_id = 0
+    list_mv = []
+    list_m = []
+
+    # Split the list of multivalues
+    for i in range(len(list_user_movies)):
+        j = 0
+        user_id = list_user_movies[i][0]
+        list_mv = list_user_movies[i][1]
+        list_m = list_user_movies[i][2]
+
+        while j < len(list_m):
+            new_list.append((list_mv[j], list_m[j], user_id))
+            j += 1
+
+    return new_list
+
+
+def execute_insert_three(table_name, field_1, field_2, field_3, obj_list, conect_obj):
+    """Insert data for a table with three fields variables
+
+    Args:
+        table_name (str): Table name for insert data
+        field_1 (str): Field in first position
+        field_2 (str): Field in second position
+        field_3 (str): Field in third position
+        obj_list (list): List of tuples with values to insert
+        conect_obj (obj): Connection object PymySQL
+    """
+    sql_command = f"INSERT INTO {table_name} ({field_1}, {field_2}, {field_3}) VALUES (%s, %s, %s)"
+    try:
+        with conect_obj.cursor() as cursor:
+            counter_command = "Select count(*) from " + table_name
+            cursor.execute(counter_command)
+            # Return the count of registers.
+            registers_count = cursor.fetchone()[0]
+
+            # If the count is zero then excute the command.
+            if registers_count == 0:
+                cursor.executemany(sql_command, obj_list)
+                message_success('the process of insertion was successful')
+            else:
+                print('The table {}'.format(table_name) +
+                      ' you already have records')
+
+        conect_obj.commit()
+    finally:
+        conect_obj.close()
+
+
 def execute_insert_two(table_name, field_1, field_2, obj_list, conect_obj):
+    """Insert data for a table with two fields variables
+
+    Args:
+        table_name (str): Table name for insert data
+        field_1 (str): Field in first position
+        field_2 (str): Field in second position
+        obj_list (list): List of tuples with values to insert
+        conect_obj (obj): Connection object PymySQL
+    """
     sql_command = f"INSERT INTO {table_name} ({field_1}, {field_2}) VALUES (%s, %s)"
     try:
         with conect_obj.cursor() as cursor:
@@ -58,9 +230,19 @@ def execute_insert_two(table_name, field_1, field_2, obj_list, conect_obj):
         conect_obj.commit()
     finally:
         conect_obj.close()
-    
+
 
 def generate_list_multivalue(obj_list, table_name, field_multi):
+    """Generate a list with data of temporal tables to insert
+
+    Args:
+        obj_list (list): List of data of temporal tables
+        table_name (str): Table name of temporal table
+        field_multi (str): Field with multi values in a list
+
+    Returns:
+        list: List of tuples with data for insert
+    """
     list_multival = []
     new_list = []
     i = 0
@@ -167,8 +349,10 @@ def export_df(table_name):
             # Convert in a unique list
             list_temporal = insert_temporal_to_list(catalog_list)
             # Generate a list with multivalues data for genres
-            list_multi = generate_list_multivalue(list_temporal, 'movies_tmp', 'genres')
-            execute_insert_two(table_name, 'title', 'genre', list_multi, conection)
+            list_multi = generate_list_multivalue(
+                list_temporal, 'movies_tmp', 'genres')
+            execute_insert_two(table_name, 'title', 'genre',
+                               list_multi, conection)
 
         if table_name == 'movie_countries_tmp':
             df = create_movies_set()
@@ -179,9 +363,10 @@ def export_df(table_name):
             # Convert in a unique list
             list_temporal = insert_temporal_to_list(catalog_list)
             # Generate a list with multivalues data for country in movies
-            list_multi = generate_list_multivalue(list_temporal, 'movies_tmp', 'country')
-            execute_insert_two(table_name, 'title', 'country', list_multi, conection)
-            
+            list_multi = generate_list_multivalue(
+                list_temporal, 'movies_tmp', 'country')
+            execute_insert_two(table_name, 'title',
+                               'country', list_multi, conection)
 
         if table_name == 'series_tmp':
             df = create_series_set()
@@ -205,8 +390,10 @@ def export_df(table_name):
             # Convert in a unique list
             list_temporal = insert_temporal_to_list(catalog_list)
             # Generate a list with multivalues data for listed_in in series
-            list_multi = generate_list_multivalue(list_temporal, 'series_tmp', 'listed_in')
-            execute_insert_two(table_name, 'title', 'listed_in', list_multi, conection)
+            list_multi = generate_list_multivalue(
+                list_temporal, 'series_tmp', 'listed_in')
+            execute_insert_two(table_name, 'title',
+                               'listed_in', list_multi, conection)
 
         if table_name == 'serie_countries_tmp':
             df = create_series_set()
@@ -218,8 +405,10 @@ def export_df(table_name):
             # Convert in a unique list
             list_temporal = insert_temporal_to_list(catalog_list)
             # Generate a list with multivalues data for country in series
-            list_multi = generate_list_multivalue(list_temporal, 'series_tmp', 'country')
-            execute_insert_two(table_name, 'title', 'country', list_multi, conection)
+            list_multi = generate_list_multivalue(
+                list_temporal, 'series_tmp', 'country')
+            execute_insert_two(table_name, 'title',
+                               'country', list_multi, conection)
 
     except (pymysql.err.OperationalError, pymysql.err.InternalError) as e:
         print("An error occurred while connecting: ", e)
@@ -528,7 +717,6 @@ def insert_fields_statement(table_name, list_obj):
 
     if table_name == 'movie_countries_tmp':
         fields_list = MOVIE_COUNTRIES_TMP_SCHEMA
-
 
     for field in fields_list:
         sql_string += field
@@ -851,10 +1039,12 @@ def run():
     11 - Create temporal table for countries of movies
     12 - Create temporal table for genres of series
     13 - Create temporal table for countries of series
-    14 - Exit program
+    14 - Create random user movies playlists
+    15 - Create random user series playlists
+    16 - Exit program
 
     Chose an option: """
-    while option != 14:
+    while option != 16:
         option = int(input(menu))
 
         if option == 1:
@@ -884,6 +1074,10 @@ def run():
         elif option == 13:
             export_df('serie_countries_tmp')
         elif option == 14:
+            playlist('user_movies')
+        elif option == 15:
+            playlist('user_series')
+        elif option == 16:
             break
         else:
             print("Please enter a correct option")
